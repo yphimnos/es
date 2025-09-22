@@ -126,6 +126,37 @@
 
         renderTask.promise.then(function() {
           pageRendering = false;
+
+          // Annotation Layer rendern (für Links und interaktive Elemente)
+          page.getAnnotations().then(function(annotationsData) {
+            const annotationLayerDiv = document.createElement("div");
+            annotationLayerDiv.className = "annotationLayer";
+            annotationLayerDiv.style.position = "absolute";
+            annotationLayerDiv.style.top = "0";
+            annotationLayerDiv.style.left = "0";
+            annotationLayerDiv.style.height = canvas.height + "px";
+            annotationLayerDiv.style.width = canvas.width + "px";
+            annotationLayerDiv.style.zIndex = 2;
+
+            pdfContainer.appendChild(annotationLayerDiv);
+
+            pdfjsLib.AnnotationLayer.render({
+              annotations: annotationsData,
+              div: annotationLayerDiv,
+              page: page,
+              viewport: viewport.clone({ dontFlip: true }),
+              linkService: {
+                navigateTo: function(dest) {
+                  console.log("Navigieren zu:", dest);
+                },
+                getDestinationHash: function(dest) {
+                  return "#";
+                },
+                externalLinkTarget: 2 // öffnet Links in einem neuen Tab
+              }
+            });
+          });
+
           if (pageNumPending !== null) {
             renderPage(pageNumPending);
             pageNumPending = null;
