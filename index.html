@@ -2,53 +2,22 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <title>PDF Viewer mit Hyperlinks</title>
-
-  <!-- PDF.js (funktionierender CDN) -->
+  <title>PDF Viewer mit echten Links</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin: 20px;
-    }
-
-    #pdf-container {
-      position: relative;
-      display: inline-block;
-    }
-
-    canvas {
-      border: 1px solid #ccc;
-      max-width: 100%;
-      height: auto;
-    }
-
-    .annotationLayer a {
-      position: absolute;
-      text-decoration: underline;
-      color: blue;
-    }
-
-    #navigation {
-      margin-top: 10px;
-    }
-
-    button, input[type=number] {
-      font-size: 16px;
-      margin: 0 5px;
-      padding: 5px 10px;
-    }
+    body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
+    #pdf-container { position: relative; display: inline-block; }
+    canvas { border: 1px solid #ccc; max-width: 100%; height: auto; }
+    .annotationLayer a { position: absolute; text-decoration: underline; color: blue; }
+    #navigation { margin-top: 10px; }
+    button, input[type=number] { font-size: 16px; margin: 0 5px; padding: 5px 10px; }
   </style>
 </head>
 <body>
-  <h2>PDF Viewer mit Hyperlinks</h2>
-
+  <h2>PDF Viewer mit echten Links</h2>
   <div id="pdf-container">
     <canvas id="pdf-render"></canvas>
   </div>
-
   <div id="navigation">
     <button id="prev-page">Zurück</button>
     <input type="number" id="page-num" min="1" value="1" style="width: 50px;" />
@@ -57,7 +26,7 @@
   </div>
 
   <script>
-    const url = 'meinedatei.pdf'; // PDF-Dateiname (im gleichen Ordner)
+    const url = 'meinedatei.pdf';
 
     let pdfDoc = null,
         pageNum = 1,
@@ -69,10 +38,13 @@
     const ctx = canvas.getContext('2d');
     const pdfContainer = document.getElementById('pdf-container');
 
+    // LinkService zur Handhabung von Links
+    const linkService = new pdfjsLib.SimpleLinkService();
+
     function clearAnnotationLayer() {
-      const oldLayer = document.querySelector('.annotationLayer');
-      if (oldLayer) {
-        oldLayer.remove();
+      const old = document.querySelector('.annotationLayer');
+      if (old) {
+        old.remove();
       }
     }
 
@@ -92,33 +64,31 @@
 
         const renderTask = page.render(renderContext);
 
+        // Nach dem Zeichnen des Canvas
         renderTask.promise.then(function() {
-          // 📌 Links anzeigen
-          return page.getAnnotations().then(function(annotationsData) {
-            const annotationLayerDiv = document.createElement("div");
-            annotationLayerDiv.className = "annotationLayer";
-            annotationLayerDiv.style.position = "absolute";
-            annotationLayerDiv.style.top = "0";
-            annotationLayerDiv.style.left = "0";
-            annotationLayerDiv.style.height = canvas.height + "px";
-            annotationLayerDiv.style.width = canvas.width + "px";
-            annotationLayerDiv.style.zIndex = 2;
+          return page.getAnnotations();
+        }).then(function(annotationsData) {
+          const annotationLayerDiv = document.createElement("div");
+          annotationLayerDiv.className = "annotationLayer";
+          annotationLayerDiv.style.position = "absolute";
+          annotationLayerDiv.style.top = "0";
+          annotationLayerDiv.style.left = "0";
+          annotationLayerDiv.style.height = canvas.height + "px";
+          annotationLayerDiv.style.width = canvas.width + "px";
+          annotationLayerDiv.style.zIndex = 2;
 
-            pdfContainer.appendChild(annotationLayerDiv);
+          pdfContainer.appendChild(annotationLayerDiv);
 
-            pdfjsLib.AnnotationLayer.render({
-              annotations: annotationsData,
-              div: annotationLayerDiv,
-              page: page,
-              viewport: viewport.clone({ dontFlip: true }),
-              linkService: {
-                getDestinationHash: (dest) => `#${dest}`,
-                navigateTo: (dest) => {
-                  console.log("Navigieren zu:", dest);
-                },
-                externalLinkTarget: 2 // in neuem Tab
-              },
-            });
+          pdfjsLib.AnnotationLayer.render({
+            annotations: annotationsData,
+            div: annotationLayerDiv,
+            page: page,
+            viewport: viewport.clone({ dontFlip: true }),
+            linkService: linkService,
+            annotationStorage: pdfDoc.annotationStorage, // optional
+            renderInteractiveForms: true,
+            // externe Links in neuem Tab
+            externalLinkTarget: 2
           });
         }).then(function() {
           pageRendering = false;
@@ -140,34 +110,33 @@
       }
     }
 
-    // Navigation Buttons
     document.getElementById('prev-page').addEventListener('click', function() {
       if (pageNum <= 1) return;
       pageNum--;
       queueRenderPage(pageNum);
     });
-
     document.getElementById('next-page').addEventListener('click', function() {
       if (pageNum >= pdfDoc.numPages) return;
       pageNum++;
       queueRenderPage(pageNum);
     });
-
-    // Seitenzahl manuell eingeben
     document.getElementById('page-num').addEventListener('change', function() {
-      let desiredPage = Number(this.value);
-      if (desiredPage >= 1 && desiredPage <= pdfDoc.numPages) {
-        pageNum = desiredPage;
+      let desired = Number(this.value);
+      if (desired >= 1 && desired <= pdfDoc.numPages) {
+        pageNum = desired;
         queueRenderPage(pageNum);
       } else {
-        alert("Ungültige Seitenzahl.");
         this.value = pageNum;
       }
     });
 
-    // PDF laden
+    // PDF laden + LinkService konfigurieren
     pdfjsLib.getDocument(url).promise.then(function(pdfDoc_) {
       pdfDoc = pdfDoc_;
+      // wichtig: linkService muss wissen, welches PDF-Dokument geladen ist
+      linkService.setDocument(pdfDoc);
+      linkService.setViewer({}); // evtl. ein Dummy Viewer, damit intern Links funktionieren
+
       document.getElementById('page-count').textContent = '/ ' + pdfDoc.numPages;
       renderPage(pageNum);
     }).catch(function(error) {
