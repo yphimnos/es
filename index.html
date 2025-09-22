@@ -2,9 +2,9 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <title>PDF Viewer</title>
+  <title>PDF Viewer mit Hyperlinks</title>
 
-  <!-- ✅ KORREKTER PDF.js CDN-Link -->
+  <!-- PDF.js (funktionierender CDN) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
   <style>
@@ -13,15 +13,28 @@
       text-align: center;
       margin: 20px;
     }
-    #pdf-render {
+
+    #pdf-container {
+      position: relative;
+      display: inline-block;
+    }
+
+    canvas {
       border: 1px solid #ccc;
       max-width: 100%;
-      display: block;
-      margin: 0 auto;
+      height: auto;
     }
+
+    .annotationLayer a {
+      position: absolute;
+      text-decoration: underline;
+      color: blue;
+    }
+
     #navigation {
       margin-top: 10px;
     }
+
     button, input[type=number] {
       font-size: 16px;
       margin: 0 5px;
@@ -30,8 +43,11 @@
   </style>
 </head>
 <body>
-  <h2>PDF Viewer</h2>
-  <canvas id="pdf-render"></canvas>
+  <h2>PDF Viewer mit Hyperlinks</h2>
+
+  <div id="pdf-container">
+    <canvas id="pdf-render"></canvas>
+  </div>
 
   <div id="navigation">
     <button id="prev-page">Zurück</button>
@@ -41,29 +57,29 @@
   </div>
 
   <script>
-    const url = 'meinedatei.pdf'; // PDF-Dateiname (im selben Ordner wie index.html)
+    const url = 'meinedatei.pdf'; // PDF-Dateiname (im gleichen Ordner)
 
     let pdfDoc = null,
         pageNum = 1,
         pageRendering = false,
         pageNumPending = null;
 
-    const scale = 1.5,
-          canvas = document.getElementById('pdf-render'),
-          ctx = canvas.getContext('2d');
+    const scale = 1.5;
+    const canvas = document.getElementById('pdf-render');
+    const ctx = canvas.getContext('2d');
+    const pdfContainer = document.getElementById('pdf-container');
 
-    // PDF laden
-    pdfjsLib.getDocument(url).promise.then(function(pdfDoc_) {
-      pdfDoc = pdfDoc_;
-      document.getElementById('page-count').textContent = '/ ' + pdfDoc.numPages;
-      renderPage(pageNum);
-    }).catch(function(error) {
-      alert('Fehler beim Laden der PDF: ' + error.message);
-    });
+    function clearAnnotationLayer() {
+      const oldLayer = document.querySelector('.annotationLayer');
+      if (oldLayer) {
+        oldLayer.remove();
+      }
+    }
 
-    // Seite rendern
     function renderPage(num) {
       pageRendering = true;
+      clearAnnotationLayer();
+
       pdfDoc.getPage(num).then(function(page) {
         const viewport = page.getViewport({ scale: scale });
         canvas.height = viewport.height;
@@ -73,9 +89,38 @@
           canvasContext: ctx,
           viewport: viewport
         };
+
         const renderTask = page.render(renderContext);
 
         renderTask.promise.then(function() {
+          // 📌 Links anzeigen
+          return page.getAnnotations().then(function(annotationsData) {
+            const annotationLayerDiv = document.createElement("div");
+            annotationLayerDiv.className = "annotationLayer";
+            annotationLayerDiv.style.position = "absolute";
+            annotationLayerDiv.style.top = "0";
+            annotationLayerDiv.style.left = "0";
+            annotationLayerDiv.style.height = canvas.height + "px";
+            annotationLayerDiv.style.width = canvas.width + "px";
+            annotationLayerDiv.style.zIndex = 2;
+
+            pdfContainer.appendChild(annotationLayerDiv);
+
+            pdfjsLib.AnnotationLayer.render({
+              annotations: annotationsData,
+              div: annotationLayerDiv,
+              page: page,
+              viewport: viewport.clone({ dontFlip: true }),
+              linkService: {
+                getDestinationHash: (dest) => `#${dest}`,
+                navigateTo: (dest) => {
+                  console.log("Navigieren zu:", dest);
+                },
+                externalLinkTarget: 2 // in neuem Tab
+              },
+            });
+          });
+        }).then(function() {
           pageRendering = false;
           if (pageNumPending !== null) {
             renderPage(pageNumPending);
@@ -87,7 +132,6 @@
       document.getElementById('page-num').value = num;
     }
 
-    // Seitenwechsel einreihen
     function queueRenderPage(num) {
       if (pageRendering) {
         pageNumPending = num;
@@ -96,7 +140,7 @@
       }
     }
 
-    // Button Events
+    // Navigation Buttons
     document.getElementById('prev-page').addEventListener('click', function() {
       if (pageNum <= 1) return;
       pageNum--;
@@ -109,16 +153,25 @@
       queueRenderPage(pageNum);
     });
 
-    // Direkt Eingabe der Seitenzahl
+    // Seitenzahl manuell eingeben
     document.getElementById('page-num').addEventListener('change', function() {
       let desiredPage = Number(this.value);
       if (desiredPage >= 1 && desiredPage <= pdfDoc.numPages) {
         pageNum = desiredPage;
         queueRenderPage(pageNum);
       } else {
-        alert("Seitenzahl außerhalb des gültigen Bereichs!");
+        alert("Ungültige Seitenzahl.");
         this.value = pageNum;
       }
+    });
+
+    // PDF laden
+    pdfjsLib.getDocument(url).promise.then(function(pdfDoc_) {
+      pdfDoc = pdfDoc_;
+      document.getElementById('page-count').textContent = '/ ' + pdfDoc.numPages;
+      renderPage(pageNum);
+    }).catch(function(error) {
+      alert('Fehler beim Laden der PDF: ' + error.message);
     });
   </script>
 </body>
