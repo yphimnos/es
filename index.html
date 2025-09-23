@@ -1,32 +1,42 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PDF Viewer mit interaktivem Menü</title>
+  <title>Visor de PDF con Menú Interactivo</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
       display: flex;
-      justify-content: space-between;
+      justify-content: center; /* Zentriert die gesamte Seite */
       margin: 20px;
+      height: 100vh; /* Stellt sicher, dass der Inhalt den gesamten Bildschirm ausfüllt */
+      align-items: flex-start; /* Verhindert vertikale Zentrierung des gesamten Inhalts */
+    }
+
+    #container {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 1200px; /* Maximale Breite für den Container */
     }
 
     #menu {
-      width: 200px;
+      width: 250px; /* Breite des Menüs */
       background-color: #f1f1f1;
       padding: 10px;
       border: 1px solid #ccc;
       height: 100%;
-      overflow-y: auto;
-      text-align: center; /* Zentriert alles im Menü */
+      text-align: center;
     }
 
     #pdf-container {
       flex-grow: 1;
+      display: flex;
+      justify-content: center; /* Zentriert den PDF-Inhalt horizontal */
+      align-items: center;
       position: relative;
-      display: inline-block;
       margin-left: 20px;
     }
 
@@ -37,8 +47,14 @@
     }
 
     #navigation {
-      margin-top: 10px;
-      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 20px;
+      position: absolute;
+      bottom: 10px;
+      right: 0; /* Stellt sicher, dass die Buttons rechts bleiben */
+      width: auto;
     }
 
     button, input[type=number] {
@@ -48,7 +64,7 @@
     }
 
     .menu-button {
-      display: inline-block; /* Zeigt Buttons nebeneinander an */
+      display: inline-block;
       margin: 5px 0;
       padding: 8px;
       background-color: #008CBA;
@@ -63,40 +79,82 @@
       background-color: #007B9A;
     }
 
-    /* Zentrieren der Überschrift */
     #menu h3 {
-      text-align: center; /* Zentriert die Überschrift */
+      text-align: center;
       margin-bottom: 15px;
+    }
+
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+      #container {
+        flex-direction: column; /* Das Layout wird in eine Spaltenanordnung umgestellt */
+      }
+
+      #menu {
+        width: 100%; /* Das Menü nimmt die volle Breite ein */
+        margin-bottom: 20px; /* Abstand zwischen Menü und PDF-Inhalt */
+        font-size: 14px; /* Kleinere Schrift im Menü */
+        padding: 5px; /* Weniger Abstand */
+      }
+
+      #pdf-container {
+        width: 100%; /* Der PDF-Inhalt nimmt die gesamte Breite ein */
+        margin-left: 0; /* Kein Abstand mehr */
+      }
+
+      button, input[type=number] {
+        font-size: 14px; /* Kleinere Schriftgrößen auf mobilen Geräten */
+        padding: 5px;
+      }
+
+      .menu-button {
+        padding: 10px; /* Etwas größere Buttons auf kleinen Bildschirmen */
+      }
+
+      /* Verstecke die Navigationsbuttons „Atrás“ und „Siguiente“ auf mobilen Geräten */
+      #navigation {
+        display: none; /* Die Buttons werden auf mobilen Geräten ausgeblendet */
+      }
+    }
+
+    @media (max-width: 480px) {
+      #menu {
+        width: 100%; /* Menü nimmt volle Breite auf sehr kleinen Geräten ein */
+      }
+
+      #pdf-container {
+        margin-left: 0; /* PDF-Inhalt nimmt volle Breite ein */
+      }
+
+      .menu-button {
+        padding: 8px; /* Anpassung der Buttons auf kleinen Geräten */
+      }
     }
   </style>
 </head>
 <body>
-  <div id="menu">
-    <!-- Zentrierte Überschrift -->
-    <h3>Indice</h3>
-    
-    <!-- Navigationsbuttons -->
-    <button class="menu-button" onclick="goToPage(2)">Numero de Himno</button>
+  <div id="container">
+    <div id="menu">
+      <h3>Índice</h3>
+      <button class="menu-button" onclick="goToPage(3)">Número de Himno</button>
+      <button class="menu-button" onclick="goToNextPage()">Página Siguiente</button>
+      <button class="menu-button" onclick="goToPrevPage()">Página Anterior</button>
 
-    <!-- Buttons für Nächste und Vorherige Seite (auf Spanisch) -->
-    <button class="menu-button" onclick="goToNextPage()">Siguiente Página</button>
-    <button class="menu-button" onclick="goToPrevPage()">Página Anterior</button>
+      <h4>Zoom</h4>
+      <button class="menu-button" onclick="zoomIn()">Ampliar</button>
+      <button class="menu-button" onclick="zoomOut()">Reducir</button>
+    </div>
 
-    <!-- Zoom-Funktion -->
-    <h4>Zoom</h4>
-    <button class="menu-button" onclick="zoomIn()">Vergrößern</button>
-    <button class="menu-button" onclick="zoomOut()">Verkleinern</button>
-  </div>
-
-  <div id="pdf-container">
-    <canvas id="pdf-render"></canvas>
+    <div id="pdf-container">
+      <canvas id="pdf-render"></canvas>
+    </div>
   </div>
 
   <div id="navigation">
-    <button id="prev-page">Zurück</button>
+    <button id="prev-page">Atrás</button>
     <input type="number" id="page-num" min="1" value="1" style="width: 50px;" />
     <span id="page-count"></span>
-    <button id="next-page">Weiter</button>
+    <button id="next-page">Siguiente</button>
   </div>
 
   <script>
@@ -107,7 +165,8 @@
         pageRendering = false,
         pageNumPending = null;
 
-    const scale = 1.5;
+    let currentScale = 1.5; // Initialer Zoomfaktor
+
     const canvas = document.getElementById('pdf-render');
     const ctx = canvas.getContext('2d');
 
@@ -115,7 +174,7 @@
       pageRendering = true;
 
       pdfDoc.getPage(num).then(function(page) {
-        const viewport = page.getViewport({ scale: scale });
+        const viewport = page.getViewport({ scale: currentScale });
         canvas.height = viewport.height;
         canvas.width = viewport.width;
 
@@ -127,36 +186,6 @@
 
         renderTask.promise.then(function() {
           pageRendering = false;
-
-          // Annotation Layer rendern (für Links und interaktive Elemente)
-          page.getAnnotations().then(function(annotationsData) {
-            const annotationLayerDiv = document.createElement("div");
-            annotationLayerDiv.className = "annotationLayer";
-            annotationLayerDiv.style.position = "absolute";
-            annotationLayerDiv.style.top = "0";
-            annotationLayerDiv.style.left = "0";
-            annotationLayerDiv.style.height = canvas.height + "px";
-            annotationLayerDiv.style.width = canvas.width + "px";
-            annotationLayerDiv.style.zIndex = 2;
-
-            pdfContainer.appendChild(annotationLayerDiv);
-
-            pdfjsLib.AnnotationLayer.render({
-              annotations: annotationsData,
-              div: annotationLayerDiv,
-              page: page,
-              viewport: viewport.clone({ dontFlip: true }),
-              linkService: {
-                navigateTo: function(dest) {
-                  console.log("Navigieren zu:", dest);
-                },
-                getDestinationHash: function(dest) {
-                  return "#";
-                },
-                externalLinkTarget: 2 // öffnet Links in einem neuen Tab
-              }
-            });
-          });
 
           if (pageNumPending !== null) {
             renderPage(pageNumPending);
@@ -194,7 +223,7 @@
         pageNum = desiredPage;
         queueRenderPage(pageNum);
       } else {
-        alert("Seitenzahl außerhalb des gültigen Bereichs!");
+        alert("¡Número de página fuera de rango!");
         this.value = pageNum;
       }
     });
@@ -204,16 +233,25 @@
       document.getElementById('page-count').textContent = '/ ' + pdfDoc.numPages;
       renderPage(pageNum);
     }).catch(function(error) {
-      alert('Fehler beim Laden der PDF: ' + error.message);
+      alert('Error al cargar el PDF: ' + error.message);
+      console.error(error);
     });
 
-    // Navigiere zu einer bestimmten Seite
+    function zoomIn() {
+      currentScale += 0.1; // Vergrößern
+      renderPage(pageNum);
+    }
+
+    function zoomOut() {
+      currentScale = Math.max(0.5, currentScale - 0.1); // Verkleinern
+      renderPage(pageNum);
+    }
+
     function goToPage(page) {
       pageNum = page;
       queueRenderPage(pageNum);
     }
 
-    // Funktion für die Navigation zur nächsten Seite
     function goToNextPage() {
       if (pageNum < pdfDoc.numPages) {
         pageNum++;
@@ -221,23 +259,11 @@
       }
     }
 
-    // Funktion für die Navigation zur vorherigen Seite
     function goToPrevPage() {
       if (pageNum > 1) {
         pageNum--;
         queueRenderPage(pageNum);
       }
-    }
-
-    // Zoom-Funktion
-    function zoomIn() {
-      scale += 0.5; // Vergrößern
-      renderPage(pageNum);
-    }
-
-    function zoomOut() {
-      scale -= 0.5; // Verkleinern
-      renderPage(pageNum);
     }
   </script>
 </body>
