@@ -181,7 +181,7 @@
       }
       #pdf-container {
         margin-top: 10px;
-        order: 2; /* PDF Inhalt direkt nach obere Menüpunkte */
+        order: 1; /* PDF Inhalt zuerst */
         display: flex;
         justify-content: center;
         align-items: center;
@@ -190,6 +190,7 @@
         display: flex;
         flex-direction: column;
         gap: 10px;
+        order: 2; /* Menü nach PDF Viewer */
       }
       /* Obere Gruppe: Portada + Notas + Página anterior + Página siguiente */
       .menu-top-mobile {
@@ -200,12 +201,13 @@
       /* Rest (Nro. de cántico) nach unten */
       .menu-bottom {
         order: 1; /* Nro. de cántico wird zuerst angezeigt */
+        margin-bottom: 2px; /* Reduzierter Abstand */
       }
 
       /* Sorgt dafür, dass "Buscar frase" nach "Nro. de cántico" kommt */
       .menu-search-text-mobile {
         order: 2; /* "Buscar frase" wird nach "Nro. de cántico" angezeigt */
-        margin-top: 20px;
+        margin-top: 2px; /* Reduzierter Abstand */
       }
     }
 
