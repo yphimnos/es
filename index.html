@@ -49,7 +49,7 @@
       height: auto;
     }
 
-    button, input[type=number] {
+    button, input[type=number], input[type=text] {
       font-size: 16px;
       margin: 5px 0;
       padding: 8px 10px;
@@ -110,7 +110,7 @@
       <canvas id="pdf-render"></canvas>
     </div>
 
-    <!-- Rechtes Menü (Gleicher Inhalt wie links) -->
+    <!-- Rechtes Menü (Gleicher Inhalt wie links, außer Suchfunktion) -->
     <div id="right-navigation">
       <h3>Índice</h3>
       <button onclick="goToNextPage()">Página Siguiente</button>
@@ -120,9 +120,9 @@
       <button onclick="zoomIn()">Ampliar</button>
       <button onclick="zoomOut()">Reducir</button>
 
-      <h4>Buscar #</h4>
-      <input type="number" id="search-num-right" min="2001" max="2700" placeholder="Número de Himno" />
-      <button onclick="searchByNumberRight()">Buscar</button>
+      <h4>Buscar frase</h4>
+      <input type="text" id="search-num-right" placeholder="Buscar palabra o frase" />
+      <button onclick="searchByPhraseRight()">Buscar</button>
     </div>
   </div>
 
@@ -201,7 +201,7 @@
       }
     }
 
-    // Suche links
+    // Suche links (numerisch)
     function searchByNumber() {
       const input = document.getElementById('search-num').value;
       const number = parseInt(input, 10);
@@ -217,20 +217,44 @@
       }
     }
 
-    // Suche rechts (für das rechte Suchfeld)
-    function searchByNumberRight() {
-      const input = document.getElementById('search-num-right').value;
-      const number = parseInt(input, 10);
-      if (number >= 2001 && number <= 2700) {
-        const targetPage = number - 1998; // 2001 -> Seite 3
-        if (targetPage >= 1 && targetPage <= pdfDoc.numPages) {
-          queueRenderPage(targetPage);
-        } else {
-          alert('Liednummer außerhalb des Bereichs!');
-        }
-      } else {
-        alert('Bitte eine gültige Liednummer zwischen 2001 und 2700 eingeben!');
+    // Suche rechts (Textsuche im PDF)
+    function searchByPhraseRight() {
+      const input = document.getElementById('search-num-right').value.trim().toLowerCase();
+
+      if (!input) {
+        alert('Por favor, ingresa una palabra o frase para buscar.');
+        return;
       }
+
+      let found = false;
+
+      const searchInPage = (pageNum) => {
+        return pdfDoc.getPage(pageNum).then((page) => {
+          return page.getTextContent().then((textContent) => {
+            const textItems = textContent.items.map(item => item.str.toLowerCase());
+            const pageText = textItems.join(' ');
+
+            if (pageText.includes(input)) {
+              found = true;
+              renderPage(pageNum);
+              alert(`Frase encontrada en la página ${pageNum}`);
+            }
+          });
+        });
+      };
+
+      const searchAllPages = async () => {
+        for (let i = 1; i <= pdfDoc.numPages; i++) {
+          await searchInPage(i);
+          if (found) break;
+        }
+
+        if (!found) {
+          alert('Frase no encontrada en el documento.');
+        }
+      };
+
+      searchAllPages();
     }
 
     pdfjsLib.getDocument(url).promise.then(function(pdfDoc_) {
@@ -243,4 +267,3 @@
   </script>
 </body>
 </html>
-
