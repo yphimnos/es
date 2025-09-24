@@ -39,6 +39,12 @@
     #menu h3, #menu h4 {
       text-align: center;
       margin-bottom: 10px;
+      font-size: 16px; /* Schriftgröße für "Navegar a:" */
+    }
+
+    /* Gleiche Schriftgröße für die "Navegar a:" und "Buscar frase:" Überschriften */
+    #menu h3, #right-navigation h3 {
+      font-size: 16px; /* Gleiche Schriftgröße für beide */
     }
 
     /* Buttons & Inputs zentriert */
@@ -181,7 +187,6 @@
         align-items: center;
       }
       #menu {
-        /* Flex Layout für Mobile links */
         display: flex;
         flex-direction: column;
         gap: 10px;
@@ -194,8 +199,61 @@
       }
       /* Rest (Nro. de cántico) nach unten */
       .menu-bottom {
-        order: 3;
+        order: 1; /* Nro. de cántico wird zuerst angezeigt */
       }
+
+      /* Sorgt dafür, dass "Buscar frase" nach "Nro. de cántico" kommt */
+      .menu-search-text-mobile {
+        order: 2; /* "Buscar frase" wird nach "Nro. de cántico" angezeigt */
+        margin-top: 20px;
+      }
+    }
+
+    /* Desktop Styles (größer als 768px) */
+    @media (min-width: 769px) {
+      #menu .menu-search-text-mobile {
+        display: none; /* "Buscar frase" wird auf Desktop ausgeblendet */
+      }
+    }
+
+    /* Neue Stile für die linke Menü-Suchfunktion (Buscar frase) */
+    #menu .menu-search-text-mobile {
+      margin-top: 20px;
+      text-align: center; /* Zentriert die Elemente */
+    }
+
+    #menu .menu-search-text-mobile h4 {
+      font-size: 16px; /* Gleiche Schriftgröße wie auf der rechten Seite */
+      color: black;
+      margin-bottom: 10px; /* Etwas Abstand nach unten */
+    }
+
+    #menu .menu-search-text-mobile input[type=text] {
+      font-size: 16px; /* Gleiche Schriftgröße wie auf der rechten Seite */
+      margin-bottom: 10px; /* Abstand zum Button */
+      padding: 8px 10px;
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+    }
+
+    #menu .menu-search-text-mobile input[type=text]::placeholder {
+      color: #aaa; /* Farbe des Platzhalters */
+    }
+
+    #menu .menu-search-text-mobile button {
+      font-size: 16px; /* Gleiche Schriftgröße wie auf der rechten Seite */
+      padding: 8px 10px;
+      width: 100%;
+      background-color: #008CBA;
+      color: white;
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
+    }
+
+    #menu .menu-search-text-mobile button:hover {
+      background-color: #007B9A;
     }
   </style>
 </head>
@@ -206,7 +264,6 @@
     <div id="menu">
       <!-- Mobile: obere Gruppe -->
       <div class="menu-top-mobile">
-        <!-- Überschrift "Navegar a:" -->
         <h3>Navegar a:</h3>
         <div class="menu-special-buttons">
           <button onclick="goToPortada()">Portada</button>
@@ -231,8 +288,15 @@
       <!-- Mobile: untere Gruppe -->
       <div class="menu-bottom">
         <h4>Nro. de cántico:</h4>
-        <input type="number" id="search-num" min="2001" max="2700" placeholder="Nro. de cántico" />
+        <input type="number" id="search-num" min="2001" max="2700" placeholder="Nro. himno a buscar" />
         <button onclick="searchByNumber()">Buscar</button>
+      </div>
+
+      <!-- Neue Suchfunktion "Buscar frase" im linken Menü -->
+      <div class="menu-search-text-mobile">
+        <h4>Buscar frase:</h4>
+        <input type="text" id="search-text-left" placeholder="Buscar palabra o frase" />
+        <button onclick="searchTextLeft()">Buscar</button>
       </div>
     </div>
 
@@ -352,7 +416,7 @@
           alert('¡Número fuera de rango!');
         }
       } else {
-        alert('Por favor, introduzca un número válido entre 2001 y 2700.');
+        alert('Número válido entre 2001 y 2700.');
       }
     }
 
@@ -360,7 +424,36 @@
     async function searchTextRight() {
       const query = document.getElementById('search-text-right').value.trim().toLowerCase();
       if (!query) {
-        alert('Por favor, introduzca una palabra o frase para buscar.');
+        alert('Palabra o frase a buscar');
+        return;
+      }
+
+      let foundPage = -1;
+
+      for (let i = 1; i <= pdfDoc.numPages; i++) {
+        const page = await pdfDoc.getPage(i);
+        const textContent = await page.getTextContent();
+        const textItems = textContent.items.map(item => item.str.toLowerCase());
+        const pageText = textItems.join(' ');
+
+        if (pageText.includes(query)) {
+          foundPage = i;
+          break;
+        }
+      }
+
+      if (foundPage > 0) {
+        queueRenderPage(foundPage);
+      } else {
+        alert('No se encontró la palabra o frase.');
+      }
+    }
+
+    // Suchfunktion links (Textsuche im PDF mit Highlighting)
+    async function searchTextLeft() {
+      const query = document.getElementById('search-text-left').value.trim().toLowerCase();
+      if (!query) {
+        alert('Palabra o frase a buscar');
         return;
       }
 
@@ -393,5 +486,4 @@
   </script>
 </body>
 </html>
-
 
